@@ -113,14 +113,13 @@ int
 					addr, addr, r0, chip->Name);
 
 				/* store first match in context */
-				if (Context->Platform.PllType == PLL_UNKNOWN)
+				if (Context->Platform.PllKey[0] == '\0')
 				{
 					strncpy(
 						Context->Platform.PllKey,
 						chip->PllKey,
 						sizeof(Context->Platform.PllKey) - 1);
 					Context->Platform.PllKey[sizeof(Context->Platform.PllKey) - 1] = '\0';
-					Context->Platform.PllType    = chip->Type;
 					Context->Platform.PllAddress = addr;
 					strncpy(
 						Context->Platform.PllName,

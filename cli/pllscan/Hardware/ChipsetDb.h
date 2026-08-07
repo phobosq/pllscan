@@ -3,35 +3,11 @@
 #include <Windows.h>
 
 
-typedef enum
-{
-	CHIPSET_UNKNOWN = 0,
-
-	CHIPSET_AMD_SB600,
-	CHIPSET_AMD_SB700,
-	CHIPSET_AMD_SB710,
-	CHIPSET_AMD_SB750,
-	CHIPSET_AMD_SB800,      /* Hudson: SB800/820/850/900 */
-
-	CHIPSET_INTEL_ICH7,
-	CHIPSET_INTEL_ICH8,
-	CHIPSET_INTEL_ICH9,
-	CHIPSET_INTEL_ICH10,
-	CHIPSET_INTEL_PCH5,     /* Ibex Peak,    LGA1156 2009 */
-	CHIPSET_INTEL_PCH6,     /* Cougar Point, LGA1155 2011 */
-	CHIPSET_INTEL_PCH7,     /* Panther Point,LGA1155 2012 */
-	CHIPSET_INTEL_PCH8,     /* Lynx Point,   LGA1150 2013 */
-	CHIPSET_INTEL_PCH9      /* Wildcat Point,LGA1150 2014 */
-
-} CHIPSET_TYPE;
-
-
 typedef struct
 {
 	USHORT VendorId;
 	USHORT DeviceId;
-
-	CHIPSET_TYPE Type;
+	char   ChipsetKey[32];
 
 	const char *Name;
 
@@ -60,14 +36,21 @@ BOOL
 	    );
 
 BOOL
-	ChipsetTypeFromString(
+	ChipsetKeyFromString(
 	    const char *Str,
-	    CHIPSET_TYPE *TypeOut
+	    char *KeyOut,
+	    int KeyOutLen
 	    );
 
 const char *
-	ChipsetTypeToString(
-	    CHIPSET_TYPE Type
+	ChipsetKeyToString(
+	    const CHIPSET_DB_ENTRY *Entry
+	    );
+
+BOOL
+	ChipsetDbLookupByKey(
+	    const char *Key,
+	    CHIPSET_DB_ENTRY *Entry
 	    );
 
 void

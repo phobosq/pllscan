@@ -102,8 +102,6 @@ BOOL
 
 		GetPrivateProfileStringA(p, "PllType",    "", tmp, sizeof(tmp), Path);
 		PllChipKeyFromString(tmp, b->PllKey, sizeof(b->PllKey));
-		if (!PllChipTypeFromString(tmp, &b->PllType))
-			b->PllType = PLL_UNKNOWN;
 
 		GetPrivateProfileStringA(p, "PllAddress", "0", tmp, sizeof(tmp), Path);
 		b->PllAddress = (UCHAR)strtoul(tmp, NULL, 16);

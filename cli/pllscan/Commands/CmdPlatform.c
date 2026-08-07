@@ -34,6 +34,11 @@ int
 		);
 
 	printf(
+		"Southbridge key: %s\n",
+		Context->Platform.SouthbridgeKey[0] ? Context->Platform.SouthbridgeKey : "(none)"
+		);
+
+	printf(
 		"Board       : %s\n",
 		Context->Platform.BoardName[0] ? Context->Platform.BoardName : "(none)"
 		);

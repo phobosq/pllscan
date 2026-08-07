@@ -149,7 +149,11 @@ PLL:
 ## Notes
 
 - `smbus scan` may report false negatives on Quick Read for chips that do not implement the Quick Command protocol. Byte Read fallback handles most cases.
-- PLL chip signature values in the database are not yet verified for RTM880N-793. After running `pll dump 105` and correlating R0 against the -792 datasheet, update `SignatureMask` and `SignatureValue` in `cli/pllscan/Hardware/PllChipDb.c`.
+- PLL chip signature values are configured in `PllChips.ini` per chip key section. After running `pll dump 105` and correlating R0 against the -792/-793 documentation, update `SignatureMask` and `SignatureValue` in `PllChips.ini`.
+- Identity is key-based:
+  - `PllChips.ini` section name is the canonical PLL key.
+  - `Boards.ini` `PllType` must match that PLL key.
+  - `Chipsets.ini` `Type` is a runtime chipset key string.
 - The CLI reads the SMBus base address from SB750 PCI config at startup. If platform detection fails (unsupported chipset), pass `--smbus-base` to override it manually:
   ```
   pllscan --smbus-base 0xB00 smbus scan

@@ -8,7 +8,7 @@
 /* keep one dummy fallback entry; real data is loaded from PllChips.ini */
 static PLL_CHIP_DESC g_PllChips[] =
 {
-	{ PLL_UNKNOWN, "UNKNOWN", NULL, 0, 0, { { 0 } }, 0, 0, 0 }
+	{ "", NULL, 0, 0, { { 0 } }, 0, 0, 0 }
 };
 
 static PLL_CHIP_DESC *g_LoadedPllChips;
@@ -16,60 +16,6 @@ static int            g_LoadedPllCount;
 
 static UCHAR g_ProbeAddresses[32];
 static int   g_ProbeAddressCount;
-
-
-static
-	PLL_CHIP_TYPE
-	MapTypeString(
-	const char *Str
-	)
-{
-	char *end;
-	unsigned long n;
-
-	if (!Str || Str[0] == '\0')
-		return PLL_UNKNOWN;
-
-	/* Allow explicit numeric type IDs in config for full decoupling. */
-	n = strtoul(Str, &end, 0);
-	if (*end == '\0')
-	{
-		if (n >= (unsigned long)PLL_RTM880N_793 &&
-		    n <= (unsigned long)PLL_ICS_LPRS919)
-		{
-			return (PLL_CHIP_TYPE)n;
-		}
-
-		return PLL_UNKNOWN;
-	}
-
-	if (_stricmp(Str, "RTM880N_793") == 0 || _stricmp(Str, "PLL_RTM880N_793") == 0)
-		return PLL_RTM880N_793;
-
-	if (_strnicmp(Str, "ICS_LPRS", 8) == 0)
-	{
-		n = strtoul(Str + 8, &end, 10);
-		if (*end == '\0')
-		{
-			if (n == 477) return PLL_ICS_LPRS477;
-			if (n == 918) return PLL_ICS_LPRS918;
-			if (n == 919) return PLL_ICS_LPRS919;
-		}
-	}
-
-	if (_strnicmp(Str, "PLL_ICS_LPRS", 12) == 0)
-	{
-		n = strtoul(Str + 12, &end, 10);
-		if (*end == '\0')
-		{
-			if (n == 477) return PLL_ICS_LPRS477;
-			if (n == 918) return PLL_ICS_LPRS918;
-			if (n == 919) return PLL_ICS_LPRS919;
-		}
-	}
-
-	return PLL_UNKNOWN;
-}
 
 
 static
@@ -138,10 +84,9 @@ BOOL
 	for (p = sections; *p != '\0'; p += strlen(p) + 1)
 	{
 		int r;
+		char key[16];
 
-		PllChipKeyFromString(p, entries[i].PllKey, sizeof(entries[i].PllKey));
-		entries[i].Type = MapTypeString(p);
-		if (entries[i].Type == PLL_UNKNOWN)
+		if (!PllChipKeyFromString(p, entries[i].PllKey, sizeof(entries[i].PllKey)))
 			continue;
 
 		GetPrivateProfileStringA(p, "Name", p, tmp, sizeof(tmp), Path);
@@ -164,8 +109,6 @@ BOOL
 
 		for (r = 0; r < 64; r++)
 		{
-			char key[16];
-
 			sprintf(key, "Reg%02dDesc", r);
 			GetPrivateProfileStringA(
 				p,
@@ -237,40 +180,6 @@ void
 
 
 BOOL
-	PllChipTypeFromString(
-	const char *Str,
-	PLL_CHIP_TYPE *TypeOut
-	)
-{
-	PPLL_CHIP_DESC chip;
-	PLL_CHIP_TYPE type;
-	char key[32];
-
-	if (!Str || !TypeOut || Str[0] == '\0')
-		return FALSE;
-
-	if (PllChipKeyFromString(Str, key, sizeof(key)))
-	{
-		chip = PllChipByKey(key);
-		if (chip)
-		{
-			*TypeOut = chip->Type;
-			return TRUE;
-		}
-	}
-
-	type = MapTypeString(Str);
-	if (type != PLL_UNKNOWN)
-	{
-		*TypeOut = type;
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-
-BOOL
 	PllChipKeyFromString(
 	const char *Str,
 	char *KeyOut,
@@ -283,17 +192,6 @@ BOOL
 	strncpy(KeyOut, Str, (size_t)KeyOutLen - 1);
 	KeyOut[KeyOutLen - 1] = '\0';
 	return TRUE;
-}
-
-
-const char *
-	PllChipTypeToString(
-	PLL_CHIP_TYPE Type
-	)
-{
-	PPLL_CHIP_DESC chip = PllChipByType(Type);
-
-	return chip ? chip->PllKey : "UNKNOWN";
 }
 
 
@@ -329,31 +227,6 @@ PPLL_CHIP_DESC
 
 
 const char *
-	PllChipRegDescription(
-	PLL_CHIP_TYPE Type,
-	UCHAR Reg
-	)
-{
-	PPLL_CHIP_DESC chip;
-
-	chip = PllChipByType(Type);
-	if (!chip)
-		return NULL;
-
-	if (Type <= PLL_UNKNOWN || Type >= (PLL_CHIP_TYPE)8)
-		return NULL;
-
-	if (Reg >= 64)
-		return NULL;
-
-	if (chip->RegDescriptions[Reg][0] == '\0')
-		return NULL;
-
-	return chip->RegDescriptions[Reg];
-}
-
-
-const char *
 	PllChipRegDescriptionByKey(
 	const char *Key,
 	UCHAR Reg
@@ -365,7 +238,13 @@ const char *
 	if (!chip)
 		return NULL;
 
-	return PllChipRegDescription(chip->Type, Reg);
+	if (Reg >= 64)
+		return NULL;
+
+	if (chip->RegDescriptions[Reg][0] == '\0')
+		return NULL;
+
+	return chip->RegDescriptions[Reg];
 }
 
 
@@ -415,28 +294,3 @@ PPLL_CHIP_DESC
 }
 
 
-PPLL_CHIP_DESC
-	PllChipByType(
-	PLL_CHIP_TYPE Type
-	)
-{
-	PPLL_CHIP_DESC entry;
-	int i;
-
-	if (g_LoadedPllChips)
-	{
-		for (i = 0; i < g_LoadedPllCount; i++)
-		{
-			if (g_LoadedPllChips[i].Type == Type)
-				return &g_LoadedPllChips[i];
-		}
-	}
-
-	for (entry = g_PllChips; entry->Name != NULL; entry++)
-	{
-		if (entry->Type == Type)
-			return entry;
-	}
-
-	return NULL;
-}

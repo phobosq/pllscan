@@ -21,11 +21,6 @@ PPLL_CHIP_DESC
 Returns the database entry for a given chip type, or NULL.
 */
 PPLL_CHIP_DESC
-	PllChipByType(
-	PLL_CHIP_TYPE Type
-	);
-
-PPLL_CHIP_DESC
 	PllChipByKey(
 	const char *Key
 	);
@@ -49,27 +44,10 @@ void
 	);
 
 BOOL
-	PllChipTypeFromString(
-	const char *Str,
-	PLL_CHIP_TYPE *TypeOut
-	);
-
-BOOL
 	PllChipKeyFromString(
 	const char *Str,
 	char *KeyOut,
 	int KeyOutLen
-	);
-
-const char *
-	PllChipTypeToString(
-	PLL_CHIP_TYPE Type
-	);
-
-const char *
-	PllChipRegDescription(
-	PLL_CHIP_TYPE Type,
-	UCHAR Reg
 	);
 
 const char *

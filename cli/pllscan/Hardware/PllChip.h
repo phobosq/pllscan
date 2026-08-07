@@ -2,22 +2,9 @@
 
 #include <Windows.h>
 
-
-typedef enum
-{
-	PLL_UNKNOWN = 0,
-	PLL_RTM880N_793,
-	PLL_ICS_LPRS477,
-	PLL_ICS_LPRS918,
-	PLL_ICS_LPRS919
-
-} PLL_CHIP_TYPE;
-
-
 /* Describes a PLL clock generator chip model */
 typedef struct _PLL_CHIP_DESC
 {
-	PLL_CHIP_TYPE   Type;
 	char            PllKey[32];
 	const char     *Name;
 	UCHAR           DefaultAddress;
