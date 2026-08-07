@@ -3,6 +3,7 @@
 
 #include "..\Commands.h"
 #include "..\Hardware\BoardDb.h"
+#include "..\Hardware\PllChipDb.h"
 #include "..\Util.h"
 
 
@@ -103,7 +104,7 @@ int
 		printf("Chipset    : %s\n", profile.Chipset);
 		printf("Northbridge: %s\n",
 			profile.Northbridge[0] ? profile.Northbridge : "(none)");
-		printf("PLL type   : %d\n",  profile.PllType);
+		printf("PLL type   : %s (%d)\n", PllChipTypeToString(profile.PllType), profile.PllType);
 		printf("PLL address: %02Xh\n", profile.PllAddress);
 
 		if (profile.ClockCount > 0)

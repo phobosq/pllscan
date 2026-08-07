@@ -10,31 +10,53 @@ static BOARD_PROFILE *g_Boards;
 static int            g_BoardCount;
 
 
-/* Known clock output label set checked per board section */
-static const char * const g_ClockLabels[] =
-{
-	"HT", "PCIe", "CPURef", "MemRef", "FSB", NULL
-};
+static char g_ClockLabels[16][16];
+static int  g_ClockLabelCount;
 
 
 static
-	PLL_CHIP_TYPE
-	MapPllTypeString(
-	    const char *Str
+	void
+	LoadClockLabels(
+	    const char *CfgPath
 	    )
 {
-	if (_stricmp(Str, "RTM880N_793")  == 0) return PLL_RTM880N_793;
-	if (_stricmp(Str, "ICS_LPRS477") == 0) return PLL_ICS_LPRS477;
-	if (_stricmp(Str, "ICS_LPRS918") == 0) return PLL_ICS_LPRS918;
-	if (_stricmp(Str, "ICS_LPRS919") == 0) return PLL_ICS_LPRS919;
+	char csv[256];
+	char *ctx;
+	char *tok;
 
-	return PLL_UNKNOWN;
+	GetPrivateProfileStringA(
+		"BoardDb",
+		"ClockLabels",
+		"HT,PCIe,CPURef,MemRef,FSB",
+		csv,
+		sizeof(csv),
+		CfgPath);
+
+	g_ClockLabelCount = 0;
+	tok = strtok_s(csv, ",", &ctx);
+
+	while (tok != NULL && g_ClockLabelCount < 16)
+	{
+		while (*tok == ' ' || *tok == '\t')
+			tok++;
+
+		strncpy(
+			g_ClockLabels[g_ClockLabelCount],
+			tok,
+			sizeof(g_ClockLabels[0]) - 1);
+
+		g_ClockLabels[g_ClockLabelCount][sizeof(g_ClockLabels[0]) - 1] = '\0';
+		g_ClockLabelCount++;
+
+		tok = strtok_s(NULL, ",", &ctx);
+	}
 }
 
 
 BOOL
 	BoardDbLoad(
-	    const char *Path
+	    const char *Path,
+	    const char *CfgPath
 	    )
 {
 	char sections[8192];
@@ -44,6 +66,8 @@ BOOL
 	int   i;
 	int   j;
 	BOARD_PROFILE *boards;
+
+	LoadClockLabels(CfgPath);
 
 	if (GetPrivateProfileSectionNamesA(
 		sections,
@@ -76,7 +100,8 @@ BOOL
 		GetPrivateProfileStringA(p, "Northbridge", "", b->Northbridge, sizeof(b->Northbridge), Path);
 
 		GetPrivateProfileStringA(p, "PllType",    "", tmp, sizeof(tmp), Path);
-		b->PllType = MapPllTypeString(tmp);
+		if (!PllChipTypeFromString(tmp, &b->PllType))
+			b->PllType = PLL_UNKNOWN;
 
 		GetPrivateProfileStringA(p, "PllAddress", "0", tmp, sizeof(tmp), Path);
 		b->PllAddress = (UCHAR)strtoul(tmp, NULL, 16);
@@ -97,7 +122,7 @@ BOOL
 
 		/* fixed clock output labels */
 		b->ClockCount = 0;
-		for (j = 0; g_ClockLabels[j] != NULL && b->ClockCount < 16; j++)
+		for (j = 0; j < g_ClockLabelCount && b->ClockCount < 16; j++)
 		{
 			GetPrivateProfileStringA(p, g_ClockLabels[j], "", tmp, sizeof(tmp), Path);
 			if (tmp[0] == '\0')

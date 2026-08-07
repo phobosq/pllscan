@@ -59,6 +59,17 @@ BOOL
 	    const char *Path
 	    );
 
+BOOL
+	ChipsetTypeFromString(
+	    const char *Str,
+	    CHIPSET_TYPE *TypeOut
+	    );
+
+const char *
+	ChipsetTypeToString(
+	    CHIPSET_TYPE Type
+	    );
+
 void
 	ChipsetDbFree(
 	    void

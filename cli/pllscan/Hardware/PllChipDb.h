@@ -24,3 +24,38 @@ PPLL_CHIP_DESC
 	PllChipByType(
 	PLL_CHIP_TYPE Type
 	);
+
+
+BOOL
+	PllChipDbLoad(
+	const char *Path
+	);
+
+void
+	PllChipDbFree(
+	void
+	);
+
+void
+	PllChipDbGetProbeAddresses(
+	UCHAR *Out,
+	int MaxCount,
+	int *CountOut
+	);
+
+BOOL
+	PllChipTypeFromString(
+	const char *Str,
+	PLL_CHIP_TYPE *TypeOut
+	);
+
+const char *
+	PllChipTypeToString(
+	PLL_CHIP_TYPE Type
+	);
+
+const char *
+	PllChipRegDescription(
+	PLL_CHIP_TYPE Type,
+	UCHAR Reg
+	);

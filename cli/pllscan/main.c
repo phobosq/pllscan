@@ -6,6 +6,7 @@
 #include "Context.h"
 #include "Platform.h"
 #include "Hardware/BoardDb.h"
+#include "Hardware/PllChipDb.h"
 
 int
 	main(
@@ -62,6 +63,7 @@ int
 		char cfgPath[MAX_PATH];
 		char chipsetsPath[MAX_PATH];
 		char boardsPath[MAX_PATH];
+		char pllChipsPath[MAX_PATH];
 		char boardName[128];
 		BOARD_PROFILE profile;
 
@@ -86,8 +88,16 @@ int
 			lstrcatA(boardsPath, "Boards.ini");
 		}
 
+		GetPrivateProfileStringA("Paths", "PllChipsDb", "", pllChipsPath, MAX_PATH, cfgPath);
+		if (pllChipsPath[0] == '\0')
+		{
+			lstrcpyA(pllChipsPath, exeDir);
+			lstrcatA(pllChipsPath, "PllChips.ini");
+		}
+
 		ChipsetDbLoad(chipsetsPath);
-		BoardDbLoad(boardsPath);
+		PllChipDbLoad(pllChipsPath);
+		BoardDbLoad(boardsPath, cfgPath);
 
 		GetPrivateProfileStringA(
 			"Selection", "Board", "",
@@ -110,6 +120,7 @@ int
 			printf("Platform detection failed\n");
 
 			BoardDbFree();
+			PllChipDbFree();
 			ChipsetDbFree();
 			DrvClose(Driver);
 
@@ -135,6 +146,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -149,6 +161,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -163,6 +176,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -177,6 +191,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -191,6 +206,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -205,6 +221,7 @@ int
 			argv);
 
 		BoardDbFree();
+		PllChipDbFree();
 		ChipsetDbFree();
 		DrvClose(Driver);
 
@@ -214,6 +231,7 @@ int
 	PrintUsage();
 
 	BoardDbFree();
+	PllChipDbFree();
 	ChipsetDbFree();
 	DrvClose(Driver);
 

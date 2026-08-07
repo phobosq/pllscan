@@ -40,7 +40,8 @@ typedef struct
 
 BOOL
 	BoardDbLoad(
-	    const char *Path
+	    const char *Path,
+	    const char *CfgPath
 	    );
 
 void
