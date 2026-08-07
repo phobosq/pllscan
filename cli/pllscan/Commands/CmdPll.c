@@ -115,6 +115,11 @@ int
 				/* store first match in context */
 				if (Context->Platform.PllType == PLL_UNKNOWN)
 				{
+					strncpy(
+						Context->Platform.PllKey,
+						chip->PllKey,
+						sizeof(Context->Platform.PllKey) - 1);
+					Context->Platform.PllKey[sizeof(Context->Platform.PllKey) - 1] = '\0';
 					Context->Platform.PllType    = chip->Type;
 					Context->Platform.PllAddress = addr;
 					strncpy(
@@ -245,7 +250,7 @@ int
 			const char *desc = NULL;
 
 			if (chip != NULL)
-				desc = PllChipRegDescription(chip->Type, i);
+				desc = PllChipRegDescriptionByKey(chip->PllKey, i);
 
 			if (desc != NULL)
 				printf("R%02d = 0x%02X  %s\n", i, buf[i], desc);

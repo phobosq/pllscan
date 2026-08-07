@@ -26,6 +26,7 @@ typedef struct
 	char  Chipset[32];        /* matches a CHIPSET_TYPE string, informational */
 	char  Northbridge[64];
 
+	char          PllKey[32];
 	PLL_CHIP_TYPE PllType;
 	UCHAR         PllAddress;
 

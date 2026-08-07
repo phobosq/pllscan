@@ -100,12 +100,17 @@ int
 			return 1;
 		}
 
-		printf("Board      : %s\n", profile.Name);
-		printf("Chipset    : %s\n", profile.Chipset);
-		printf("Northbridge: %s\n",
-			profile.Northbridge[0] ? profile.Northbridge : "(none)");
-		printf("PLL type   : %s (%d)\n", PllChipTypeToString(profile.PllType), profile.PllType);
-		printf("PLL address: %02Xh\n", profile.PllAddress);
+		{
+			PPLL_CHIP_DESC chip = PllChipByKey(profile.PllKey);
+
+			printf("Board      : %s\n", profile.Name);
+			printf("Chipset    : %s\n", profile.Chipset);
+			printf("Northbridge: %s\n",
+				profile.Northbridge[0] ? profile.Northbridge : "(none)");
+			printf("PLL key    : %s\n", profile.PllKey[0] ? profile.PllKey : "(none)");
+			printf("PLL chip   : %s\n", chip != NULL ? chip->Name : "(unknown)");
+			printf("PLL address: %02Xh\n", profile.PllAddress);
+		}
 
 		if (profile.ClockCount > 0)
 		{

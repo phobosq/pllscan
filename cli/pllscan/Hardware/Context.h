@@ -21,6 +21,7 @@ typedef struct
 
 	char SouthbridgeName[64];
 
+	char          PllKey[32];
 	PLL_CHIP_TYPE PllType;
 	UCHAR         PllAddress;
 	char          PllName[48];

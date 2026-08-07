@@ -18,9 +18,11 @@ typedef enum
 typedef struct _PLL_CHIP_DESC
 {
 	PLL_CHIP_TYPE   Type;
+	char            PllKey[32];
 	const char     *Name;
 	UCHAR           DefaultAddress;
 	UCHAR           RegisterCount;
+	char            RegDescriptions[64][64];
 
 	/*
 	R0 signature match: (ReadByte(SignatureReg) & SignatureMask) == SignatureValue

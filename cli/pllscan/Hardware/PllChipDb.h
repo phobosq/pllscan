@@ -25,6 +25,11 @@ PPLL_CHIP_DESC
 	PLL_CHIP_TYPE Type
 	);
 
+PPLL_CHIP_DESC
+	PllChipByKey(
+	const char *Key
+	);
+
 
 BOOL
 	PllChipDbLoad(
@@ -49,6 +54,13 @@ BOOL
 	PLL_CHIP_TYPE *TypeOut
 	);
 
+BOOL
+	PllChipKeyFromString(
+	const char *Str,
+	char *KeyOut,
+	int KeyOutLen
+	);
+
 const char *
 	PllChipTypeToString(
 	PLL_CHIP_TYPE Type
@@ -57,5 +69,11 @@ const char *
 const char *
 	PllChipRegDescription(
 	PLL_CHIP_TYPE Type,
+	UCHAR Reg
+	);
+
+const char *
+	PllChipRegDescriptionByKey(
+	const char *Key,
 	UCHAR Reg
 	);

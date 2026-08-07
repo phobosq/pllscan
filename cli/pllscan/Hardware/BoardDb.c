@@ -95,11 +95,13 @@ BOOL
 		BOARD_PROFILE *b = &boards[i];
 
 		strncpy(b->Name, p, sizeof(b->Name) - 1);
+		b->Name[sizeof(b->Name) - 1] = '\0';
 
 		GetPrivateProfileStringA(p, "Chipset",     "", b->Chipset,     sizeof(b->Chipset),     Path);
 		GetPrivateProfileStringA(p, "Northbridge", "", b->Northbridge, sizeof(b->Northbridge), Path);
 
 		GetPrivateProfileStringA(p, "PllType",    "", tmp, sizeof(tmp), Path);
+		PllChipKeyFromString(tmp, b->PllKey, sizeof(b->PllKey));
 		if (!PllChipTypeFromString(tmp, &b->PllType))
 			b->PllType = PLL_UNKNOWN;
 

@@ -8,7 +8,7 @@
 /* keep one dummy fallback entry; real data is loaded from PllChips.ini */
 static PLL_CHIP_DESC g_PllChips[] =
 {
-	{ PLL_UNKNOWN, NULL, 0, 0, 0, 0, 0 }
+	{ PLL_UNKNOWN, "UNKNOWN", NULL, 0, 0, { { 0 } }, 0, 0, 0 }
 };
 
 static PLL_CHIP_DESC *g_LoadedPllChips;
@@ -16,7 +16,6 @@ static int            g_LoadedPllCount;
 
 static UCHAR g_ProbeAddresses[32];
 static int   g_ProbeAddressCount;
-static char  g_RegDescriptions[8][64][64];
 
 
 static
@@ -135,14 +134,12 @@ BOOL
 	if (!entries)
 		return FALSE;
 
-	memset(g_RegDescriptions, 0, sizeof(g_RegDescriptions));
-
 	i = 0;
 	for (p = sections; *p != '\0'; p += strlen(p) + 1)
 	{
 		int r;
-		char key[16];
 
+		PllChipKeyFromString(p, entries[i].PllKey, sizeof(entries[i].PllKey));
 		entries[i].Type = MapTypeString(p);
 		if (entries[i].Type == PLL_UNKNOWN)
 			continue;
@@ -167,13 +164,15 @@ BOOL
 
 		for (r = 0; r < 64; r++)
 		{
+			char key[16];
+
 			sprintf(key, "Reg%02dDesc", r);
 			GetPrivateProfileStringA(
 				p,
 				key,
 				"",
-				g_RegDescriptions[entries[i].Type][r],
-				sizeof(g_RegDescriptions[entries[i].Type][r]),
+				entries[i].RegDescriptions[r],
+				sizeof(entries[i].RegDescriptions[r]),
 				Path);
 		}
 
@@ -212,7 +211,6 @@ void
 	g_LoadedPllChips = NULL;
 	g_LoadedPllCount = 0;
 	g_ProbeAddressCount = 0;
-	memset(g_RegDescriptions, 0, sizeof(g_RegDescriptions));
 }
 
 
@@ -244,11 +242,22 @@ BOOL
 	PLL_CHIP_TYPE *TypeOut
 	)
 {
+	PPLL_CHIP_DESC chip;
 	PLL_CHIP_TYPE type;
-	int i;
+	char key[32];
 
 	if (!Str || !TypeOut || Str[0] == '\0')
 		return FALSE;
+
+	if (PllChipKeyFromString(Str, key, sizeof(key)))
+	{
+		chip = PllChipByKey(key);
+		if (chip)
+		{
+			*TypeOut = chip->Type;
+			return TRUE;
+		}
+	}
 
 	type = MapTypeString(Str);
 	if (type != PLL_UNKNOWN)
@@ -257,16 +266,23 @@ BOOL
 		return TRUE;
 	}
 
-	for (i = 0; i < g_LoadedPllCount; i++)
-	{
-		if (g_LoadedPllChips[i].Name && _stricmp(Str, g_LoadedPllChips[i].Name) == 0)
-		{
-			*TypeOut = g_LoadedPllChips[i].Type;
-			return TRUE;
-		}
-	}
-
 	return FALSE;
+}
+
+
+BOOL
+	PllChipKeyFromString(
+	const char *Str,
+	char *KeyOut,
+	int KeyOutLen
+	)
+{
+	if (!Str || !KeyOut || KeyOutLen <= 0 || Str[0] == '\0')
+		return FALSE;
+
+	strncpy(KeyOut, Str, (size_t)KeyOutLen - 1);
+	KeyOut[KeyOutLen - 1] = '\0';
+	return TRUE;
 }
 
 
@@ -275,14 +291,40 @@ const char *
 	PLL_CHIP_TYPE Type
 	)
 {
-	switch (Type)
+	PPLL_CHIP_DESC chip = PllChipByType(Type);
+
+	return chip ? chip->PllKey : "UNKNOWN";
+}
+
+
+PPLL_CHIP_DESC
+	PllChipByKey(
+	const char *Key
+	)
+{
+	PPLL_CHIP_DESC entry;
+	int i;
+
+	if (!Key || Key[0] == '\0')
+		return NULL;
+
+	if (g_LoadedPllChips)
 	{
-	case PLL_RTM880N_793: return "RTM880N_793";
-	case PLL_ICS_LPRS477: return "ICS_LPRS477";
-	case PLL_ICS_LPRS918: return "ICS_LPRS918";
-	case PLL_ICS_LPRS919: return "ICS_LPRS919";
-	default:              return "UNKNOWN";
+		for (i = 0; i < g_LoadedPllCount; i++)
+		{
+			entry = &g_LoadedPllChips[i];
+			if (_stricmp(entry->PllKey, Key) == 0)
+				return entry;
+		}
 	}
+
+	for (entry = g_PllChips; entry->Name != NULL; entry++)
+	{
+		if (_stricmp(entry->PllKey, Key) == 0)
+			return entry;
+	}
+
+	return NULL;
 }
 
 
@@ -292,16 +334,38 @@ const char *
 	UCHAR Reg
 	)
 {
+	PPLL_CHIP_DESC chip;
+
+	chip = PllChipByType(Type);
+	if (!chip)
+		return NULL;
+
 	if (Type <= PLL_UNKNOWN || Type >= (PLL_CHIP_TYPE)8)
 		return NULL;
 
 	if (Reg >= 64)
 		return NULL;
 
-	if (g_RegDescriptions[Type][Reg][0] == '\0')
+	if (chip->RegDescriptions[Reg][0] == '\0')
 		return NULL;
 
-	return g_RegDescriptions[Type][Reg];
+	return chip->RegDescriptions[Reg];
+}
+
+
+const char *
+	PllChipRegDescriptionByKey(
+	const char *Key,
+	UCHAR Reg
+	)
+{
+	PPLL_CHIP_DESC chip;
+
+	chip = PllChipByKey(Key);
+	if (!chip)
+		return NULL;
+
+	return PllChipRegDescription(chip->Type, Reg);
 }
 
 

@@ -33,6 +33,21 @@ int
 		Context->Platform.SouthbridgeName
 		);
 
+	printf(
+		"Board       : %s\n",
+		Context->Platform.BoardName[0] ? Context->Platform.BoardName : "(none)"
+		);
+
+	printf(
+		"PLL key     : %s\n",
+		Context->Platform.PllKey[0] ? Context->Platform.PllKey : "(none)"
+		);
+
+	printf(
+		"PLL name    : %s\n",
+		Context->Platform.PllName[0] ? Context->Platform.PllName : "(none)"
+		);
+
 
 	printf(
 		"Vendor ID   : %04X\n",

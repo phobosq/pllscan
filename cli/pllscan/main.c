@@ -106,6 +106,7 @@ int
 
 		if (boardName[0] != '\0' && BoardDbLookup(boardName, &profile))
 		{
+			lstrcpyA(Context.Platform.PllKey, profile.PllKey);
 			Context.Platform.PllType    = profile.PllType;
 			Context.Platform.PllAddress = profile.PllAddress;
 			lstrcpyA(Context.Platform.BoardName,       profile.Name);
