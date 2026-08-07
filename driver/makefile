@@ -1,0 +1,4 @@
+!INCLUDE $(NTMAKEENV)\makefile.def 
+!IFDEF BUILD_ALT_DIR
+
+!ENDIF

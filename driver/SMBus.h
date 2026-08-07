@@ -1,0 +1,4 @@
+NTSTATUS
+	SmbusReadByte(
+	PSMBUS_READ_REQUEST Request
+	);

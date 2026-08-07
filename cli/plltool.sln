@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plltool", "plltool\plltool.vcxproj", "{A59D9148-D50A-4A4E-B9D4-E6B3C1ED59DF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plldrv", "plldrv\plldrv.vcxproj", "{339B26ED-35BC-4CB2-86A4-EDEA2495F38E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pllscan", "pllscan\pllscan.vcxproj", "{7E09F2A1-4D8B-4AE2-9B7E-D20126C1743F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A59D9148-D50A-4A4E-B9D4-E6B3C1ED59DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A59D9148-D50A-4A4E-B9D4-E6B3C1ED59DF}.Debug|Win32.Build.0 = Debug|Win32
+		{A59D9148-D50A-4A4E-B9D4-E6B3C1ED59DF}.Release|Win32.ActiveCfg = Release|Win32
+		{A59D9148-D50A-4A4E-B9D4-E6B3C1ED59DF}.Release|Win32.Build.0 = Release|Win32
+		{339B26ED-35BC-4CB2-86A4-EDEA2495F38E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{339B26ED-35BC-4CB2-86A4-EDEA2495F38E}.Debug|Win32.Build.0 = Debug|Win32
+		{339B26ED-35BC-4CB2-86A4-EDEA2495F38E}.Release|Win32.ActiveCfg = Release|Win32
+		{339B26ED-35BC-4CB2-86A4-EDEA2495F38E}.Release|Win32.Build.0 = Release|Win32
+		{7E09F2A1-4D8B-4AE2-9B7E-D20126C1743F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7E09F2A1-4D8B-4AE2-9B7E-D20126C1743F}.Debug|Win32.Build.0 = Debug|Win32
+		{7E09F2A1-4D8B-4AE2-9B7E-D20126C1743F}.Release|Win32.ActiveCfg = Release|Win32
+		{7E09F2A1-4D8B-4AE2-9B7E-D20126C1743F}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

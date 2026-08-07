@@ -1,0 +1,7 @@
+cli/pllscan/Debug/*.*
+driver/objfre_wxp_x86/*.*
+driver/objfre_wxp_x86/*/*.*
+driver/objfre_win7_x86/*.*
+driver/objfre_win7_x86/*/*.*
+feature-plan.md
+.github/agents/C-reviewer.agent.md

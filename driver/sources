@@ -1,0 +1,8 @@
+TARGETNAME=plldrv
+TARGETTYPE=DRIVER
+
+TARGETLIBS=$(TARGETLIBS) $(DDK_LIB_PATH)\wdmsec.lib
+
+SOURCES=DriverEntry.c \
+        Ioctl.c \
+		Pci.c
