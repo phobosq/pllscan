@@ -8,7 +8,7 @@
 
 typedef struct
 {
-	CHIPSET_TYPE Chipset;
+	char ChipsetKey[32];
 
 	USHORT VendorId;
 	USHORT DeviceId;
@@ -17,13 +17,13 @@ typedef struct
 	USHORT SouthbridgeVendor;
 	USHORT SouthbridgeDevice;
 
-	CHIPSET_TYPE SouthbridgeType;
+	char SouthbridgeKey[32];
 
 	char SouthbridgeName[64];
 
-	PLL_CHIP_TYPE PllType;
-	UCHAR         PllAddress;
-	char          PllName[48];
+	char  PllKey[32];
+	UCHAR PllAddress;
+	char  PllName[48];
 
 	char BoardName[128];
 	char NorthbridgeName[64];

@@ -88,6 +88,8 @@ pllscan pll probe
 
 Reads register 0 from candidate addresses and matches against the chip database.
 
+Identity is key-based: each chip is identified by its `PllChips.ini` section key (for example `RTM880N_793`, `ICS_LPRS477`).
+
 ### 4. Dump all PLL registers
 
 ```
@@ -153,11 +155,18 @@ cli/
     Commands/            One .c file per command group
     Hardware/            Platform, SMBus, chipset, PLL, board databases
 
-Chipsets.ini     External chipset database (overrides compiled-in table)
-Boards.ini       Board profiles with PLL type, address, and clock defaults
+Chipsets.ini     External chipset database (keyed by VendorId:DeviceId; Type is a runtime key)
+Boards.ini       Board profiles with chipset/PLL keys, address, and clock defaults
 pllscan.cfg      Runtime config (database paths, selected board)
 MANUAL.md        Full user manual
 ```
+
+### Key Contracts
+
+- `PllChips.ini` section name is the canonical PLL key.
+- `Boards.ini` `PllType` must match a `PllChips.ini` section key.
+- `Chipsets.ini` `Type` is a runtime chipset key string (not a compiled enum).
+- Keys are compared case-insensitively by the loader.
 
 ---
 

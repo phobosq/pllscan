@@ -23,11 +23,11 @@ typedef struct
 typedef struct
 {
 	char  Name[128];
-	char  Chipset[32];        /* matches a CHIPSET_TYPE string, informational */
+	char  Chipset[32];        /* matches Chipsets.ini Type key, informational */
 	char  Northbridge[64];
 
-	PLL_CHIP_TYPE PllType;
-	UCHAR         PllAddress;
+	char  PllKey[32];
+	UCHAR PllAddress;
 
 	BOARD_REG_DEFAULT  Regs[64];
 	UCHAR              RegCount;
@@ -40,7 +40,8 @@ typedef struct
 
 BOOL
 	BoardDbLoad(
-	    const char *Path
+	    const char *Path,
+	    const char *CfgPath
 	    );
 
 void

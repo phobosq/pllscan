@@ -8,16 +8,6 @@
 #include "SmbusRegs.h"
 
 
-/* Addresses to probe in order */
-static const UCHAR g_ProbeAddresses[] =
-{
-	0x69, 0x6A,
-	0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F
-};
-
-#define PROBE_ADDRESS_COUNT \
-	(sizeof(g_ProbeAddresses) / sizeof(g_ProbeAddresses[0]))
-
 #define MAX_DUMP_REGS  64
 
 
@@ -80,14 +70,23 @@ int
 {
 	if (argc >= 3 && !_stricmp(argv[2], "probe"))
 	{
+		UCHAR addrs[32];
 		UCHAR i;
+		int addrCount;
 		int found = 0;
+
+		PllChipDbGetProbeAddresses(addrs, 32, &addrCount);
+		if (addrCount <= 0)
+		{
+			addrs[0] = 0x69;
+			addrCount = 1;
+		}
 
 		printf("Probing PLL chip addresses...\n\n");
 
-		for (i = 0; i < PROBE_ADDRESS_COUNT; i++)
+		for (i = 0; i < (UCHAR)addrCount; i++)
 		{
-			UCHAR addr = g_ProbeAddresses[i];
+			UCHAR addr = addrs[i];
 			UCHAR r0 = 0;
 			UCHAR status = 0;
 			PPLL_CHIP_DESC chip;
@@ -114,9 +113,13 @@ int
 					addr, addr, r0, chip->Name);
 
 				/* store first match in context */
-				if (Context->Platform.PllType == PLL_UNKNOWN)
+				if (Context->Platform.PllKey[0] == '\0')
 				{
-					Context->Platform.PllType    = chip->Type;
+					strncpy(
+						Context->Platform.PllKey,
+						chip->PllKey,
+						sizeof(Context->Platform.PllKey) - 1);
+					Context->Platform.PllKey[sizeof(Context->Platform.PllKey) - 1] = '\0';
 					Context->Platform.PllAddress = addr;
 					strncpy(
 						Context->Platform.PllName,
@@ -208,6 +211,7 @@ int
 		UCHAR addr;
 		UCHAR buf[MAX_DUMP_REGS];
 		UCHAR count;
+		UCHAR i;
 		PPLL_CHIP_DESC chip;
 		UCHAR r0 = 0;
 		UCHAR status = 0;
@@ -240,36 +244,20 @@ int
 		printf("Chip: %s\n\n",
 			chip != NULL ? chip->Name : "unidentified");
 
-		/*
-		Field annotations are based on RTM880N-792 reverse engineering;
-		verify each field with the -793 datasheet when available.
-		Update this table once pll dump output is correlated against
-		a known-good clock configuration.
-		*/
-
-		printf("R00 = 0x%02X  chip ID / revision\n",       buf[0]);
-		printf("R01 = 0x%02X  [spread spectrum control?]\n",buf[1]);
-		printf("R02 = 0x%02X  [PLL control]\n",             buf[2]);
-		printf("R03 = 0x%02X  [PLL control]\n",             buf[3]);
-		printf("R04 = 0x%02X  [PLL control]\n",             buf[4]);
-		printf("R05 = 0x%02X  [HT clock divider?]\n",       buf[5]);
-		printf("R06 = 0x%02X  [HT clock divider?]\n",       buf[6]);
-		printf("R07 = 0x%02X  [PCIe ref control?]\n",       buf[7]);
-		printf("R08 = 0x%02X  [DDR ref control?]\n",        buf[8]);
-		printf("R09 = 0x%02X  [spread spectrum enable?]\n", buf[9]);
-
-		if (count > 10)
+		for (i = 0; i < count; i++)
 		{
-			UCHAR i;
+			const char *desc = NULL;
 
-			printf("\n");
+			if (chip != NULL)
+				desc = PllChipRegDescriptionByKey(chip->PllKey, i);
 
-			for (i = 10; i < count; i++)
+			if (desc != NULL)
+				printf("R%02d = 0x%02X  %s\n", i, buf[i], desc);
+			else
 				printf("R%02d = 0x%02X\n", i, buf[i]);
 		}
 
-		printf("\nNote: field names are estimates from -792 reverse engineering.\n");
-		printf("      Run on known 200MHz config and compare to confirm.\n");
+		printf("\nNote: decode labels come from PllChips.ini RegXXDesc keys.\n");
 
 		return 0;
 	}

@@ -48,7 +48,11 @@ BOOL
 
 		Context->Platform.SouthbridgeVendor = vendor;
 		Context->Platform.SouthbridgeDevice = device;
-		Context->Platform.SouthbridgeType   = entry.Type;
+		strncpy(
+			Context->Platform.SouthbridgeKey,
+			entry.ChipsetKey,
+			sizeof(Context->Platform.SouthbridgeKey) - 1);
+		Context->Platform.SouthbridgeKey[sizeof(Context->Platform.SouthbridgeKey) - 1] = '\0';
 
 		strcpy_s(
 			Context->Platform.SouthbridgeName,
