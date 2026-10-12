@@ -44,6 +44,55 @@ static
 		);
 }
 
+static
+	BOOL
+	SmbusPollTransaction(
+	PPLL_CONTEXT Context,
+	PUCHAR Status
+	)
+{
+	UCHAR hostStatus = 0;
+	ULONG timeout;
+	ULONG yieldEvery;
+
+	timeout = Context->Platform.SmbPollTimeout;
+	if (timeout == 0)
+		timeout = 10000;
+
+	yieldEvery = Context->Platform.SmbYieldEvery;
+	if (yieldEvery == 0)
+		yieldEvery = 64;
+
+	do
+	{
+		if (!SmbusReadPort(Context, SMBHSTSTS, &hostStatus))
+			return FALSE;
+
+		if (hostStatus & SMB_ERR_MASK)
+		{
+			if (Status)
+				*Status = hostStatus;
+			return FALSE;
+		}
+
+		if (hostStatus & SMB_STS_INTR)
+		{
+			if (Status)
+				*Status = hostStatus;
+			return TRUE;
+		}
+
+		if ((timeout % yieldEvery) == 0)
+			Sleep(0);
+
+	} while (--timeout);
+
+	if (Status)
+		*Status = hostStatus;
+
+	return FALSE;
+}
+
 /* Clears status; if HOST_BUSY is stuck, issues KILL to generate a STOP */
 static
 	BOOL
@@ -53,6 +102,16 @@ static
 {
 	UCHAR s;
 	ULONG i;
+	ULONG recoverPolls;
+	ULONG yieldEvery;
+
+	recoverPolls = Context->Platform.SmbRecoverPolls;
+	if (recoverPolls == 0)
+		recoverPolls = 1000;
+
+	yieldEvery = Context->Platform.SmbYieldEvery;
+	if (yieldEvery == 0)
+		yieldEvery = 64;
 
 	if (!SmbusWritePort(Context, SMBHSTSTS, 0xFF))
 		return FALSE;
@@ -62,19 +121,26 @@ static
 
 	if (s & SMB_STS_HOST_BUSY)
 	{
-		/* bit 4 = KILL: forces a STOP condition and releases HOST_BUSY */
-		SmbusWritePort(Context, SMBHSTCNT, 0x10);
+		if (!SmbusWritePort(Context, SMBHSTCNT, 0x02))
+			return FALSE;
 
-		for (i = 0; i < 1000; i++)
+		for (i = 0; i < recoverPolls; i++)
 		{
 			if (!SmbusReadPort(Context, SMBHSTSTS, &s))
 				return FALSE;
 
 			if (!(s & SMB_STS_HOST_BUSY))
 				break;
+
+			if ((i % yieldEvery) == 0)
+				Sleep(0);
 		}
 
-		SmbusWritePort(Context, SMBHSTSTS, 0xFF);
+		if (!SmbusWritePort(Context, SMBHSTSTS, 0xFF))
+			return FALSE;
+
+		if (!SmbusReadPort(Context, SMBHSTSTS, &s))
+			return FALSE;
 
 		if (s & SMB_STS_HOST_BUSY)
 			return FALSE;
@@ -93,7 +159,9 @@ BOOL
 	)
 {
 	UCHAR hostStatus;
-	ULONG timeout;
+
+	if (Status)
+		*Status = 0xFF;
 
 	if (!SmbusWaitReady(Context))
 		return FALSE;
@@ -107,27 +175,15 @@ BOOL
 	if (!SmbusWritePort(Context, SMBHSTCNT, Context->Platform.SmbCmdByteData))
 		return FALSE;
 
-	timeout = 10000;
-	do
+	if (!SmbusPollTransaction(Context, &hostStatus))
 	{
-		if (!SmbusReadPort(Context, SMBHSTSTS, &hostStatus))
-			return FALSE;
-
-		if (hostStatus & SMB_ERR_MASK)
-		{
+		if (Status)
 			*Status = hostStatus;
-			return FALSE;
-		}
-
-		if (hostStatus & SMB_STS_INTR)
-			break;
-
-	} while (--timeout);
-
-	if (timeout == 0)
 		return FALSE;
+}
 
-	*Status = hostStatus;
+	if (Status)
+		*Status = hostStatus;
 
 	if (!SmbusReadPort(Context, SMBHSTDAT0, Data))
 		return FALSE;
@@ -145,7 +201,6 @@ BOOL
 	)
 {
 	UCHAR hostStatus;
-	ULONG timeout;
 
 	if (!SmbusWaitReady(Context))
 		return FALSE;
@@ -162,21 +217,10 @@ BOOL
 	if (!SmbusWritePort(Context, SMBHSTCNT, Context->Platform.SmbCmdByteData))
 		return FALSE;
 
-	timeout = 10000;
-	do
-	{
-		if (!SmbusReadPort(Context, SMBHSTSTS, &hostStatus))
-			return FALSE;
+	if (!SmbusPollTransaction(Context, &hostStatus))
+		return FALSE;
 
-		if (hostStatus & SMB_ERR_MASK)
-			return FALSE;
-
-		if (hostStatus & SMB_STS_INTR)
-			return TRUE;
-
-	} while (--timeout);
-
-	return FALSE;
+	return TRUE;
 }
 
 
@@ -187,7 +231,6 @@ BOOL
 	)
 {
 	UCHAR hostStatus;
-	ULONG timeout;
 
 	if (!SmbusWaitReady(Context))
 		return FALSE;
@@ -199,19 +242,114 @@ BOOL
 	if (!SmbusWritePort(Context, SMBHSTCNT, SMB_CMD_QUICK))
 		return FALSE;
 
-	timeout = 10000;
-	do
+	if (!SmbusPollTransaction(Context, &hostStatus))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+BOOL
+	SmbusQuickWrite(
+	PPLL_CONTEXT Context,
+	UCHAR Address
+	)
+{
+	UCHAR hostStatus;
+
+	if (!SmbusWaitReady(Context))
+		return FALSE;
+
+	/* bit 0 = 0: write direction */
+	if (!SmbusWritePort(Context, SMBHSTADD, (Address << 1) & ~1))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTCNT, SMB_CMD_QUICK))
+		return FALSE;
+
+	if (!SmbusPollTransaction(Context, &hostStatus))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+BOOL
+	SmbusReceiveByte(
+	PPLL_CONTEXT Context,
+	UCHAR Address,
+	PUCHAR Data,
+	PUCHAR Status
+	)
+{
+	UCHAR hostStatus;
+
+	if (Status)
+		*Status = 0xFF;
+
+	if (!SmbusWaitReady(Context))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTADD, (Address << 1) | 1))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTCNT, SMB_CMD_BYTE))
+		return FALSE;
+
+	if (!SmbusPollTransaction(Context, &hostStatus))
 	{
-		if (!SmbusReadPort(Context, SMBHSTSTS, &hostStatus))
+		if (Status)
+			*Status = hostStatus;
+		return FALSE;
+}
+
+	if (Status)
+		*Status = hostStatus;
+
+	if (!SmbusReadPort(Context, SMBHSTDAT0, Data))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+BOOL
+	SmbusReadSeq(
+	PPLL_CONTEXT Context,
+	UCHAR Address,
+	UCHAR StartReg,
+	UCHAR *Buf,
+	UCHAR Count
+	)
+{
+	UCHAR i;
+	UCHAR status;
+
+	/* set register pointer via Send Byte (write-direction, no data payload) */
+	if (!SmbusWaitReady(Context))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTADD, (Address << 1) & ~1))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTCMD, StartReg))
+		return FALSE;
+
+	if (!SmbusWritePort(Context, SMBHSTCNT, SMB_CMD_BYTE))
+		return FALSE;
+
+	{
+		UCHAR hostStatus;
+		if (!SmbusPollTransaction(Context, &hostStatus))
 			return FALSE;
+	}
 
-		if (hostStatus & SMB_STS_DEV_ERR)
+	/* sequential receive: chip auto-increments register pointer */
+	for (i = 0; i < Count; i++)
+	{
+		if (!SmbusReceiveByte(Context, Address, &Buf[i], &status))
 			return FALSE;
+	}
 
-		if (hostStatus & SMB_STS_INTR)
-			return TRUE;
-
-	} while (--timeout);
-
-	return FALSE;
+	return TRUE;
 }

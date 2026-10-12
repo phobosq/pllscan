@@ -94,6 +94,9 @@ BOOL
 
 	Context->Platform.SmbusBase = (USHORT)(value & entry.SmbusBarMask);
 	Context->Platform.SmbCmdByteData = entry.SmbCmdByteData;
+	Context->Platform.SmbPollTimeout = entry.SmbPollTimeout;
+	Context->Platform.SmbYieldEvery = entry.SmbYieldEvery;
+	Context->Platform.SmbRecoverPolls = entry.SmbRecoverPolls;
 
 	return TRUE;
 }

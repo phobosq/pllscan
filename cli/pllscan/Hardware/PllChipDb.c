@@ -8,7 +8,7 @@
 /* keep one dummy fallback entry; real data is loaded from PllChips.ini */
 static PLL_CHIP_DESC g_PllChips[] =
 {
-	{ "", NULL, 0, 0, { { 0 } }, 0, 0, 0 }
+	{ "", NULL, 0, 0, { 0 }, 0, { { 0 } }, 0, 0, 0, 0, 0, 0, PLL_READ_BYTE_DATA }
 };
 
 static PLL_CHIP_DESC *g_LoadedPllChips;
@@ -16,6 +16,51 @@ static int            g_LoadedPllCount;
 
 static UCHAR g_ProbeAddresses[32];
 static int   g_ProbeAddressCount;
+
+
+static
+	BOOL
+	PllChipAddressMatches(
+	const PLL_CHIP_DESC *Entry,
+	UCHAR Address
+	)
+{
+	UCHAR i;
+
+	if (Entry->DefaultAddress == Address)
+		return TRUE;
+
+	for (i = 0; i < Entry->ProbeAddressCount; i++)
+	{
+		if (Entry->ProbeAddresses[i] == Address)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+
+static
+	BOOL
+	PllChipSignatureMatches(
+	const PLL_CHIP_DESC *Entry,
+	UCHAR R0
+	)
+{
+	if (Entry->SignatureMask != 0)
+	{
+		if ((R0 & Entry->SignatureMask) != Entry->SignatureValue)
+			return FALSE;
+	}
+
+	if (Entry->SignatureMask2 != 0)
+	{
+		if ((R0 & Entry->SignatureMask2) != Entry->SignatureValue2)
+			return FALSE;
+	}
+
+	return TRUE;
+}
 
 
 static
@@ -33,23 +78,52 @@ static
 
 	for (i = 0; i < g_LoadedPllCount; i++)
 	{
-		addr = g_LoadedPllChips[i].DefaultAddress;
-
-		if (addr == 0)
-			continue;
-
-		exists = 0;
-		for (j = 0; j < g_ProbeAddressCount; j++)
+		if (g_LoadedPllChips[i].ProbeAddressCount > 0)
 		{
-			if (g_ProbeAddresses[j] == addr)
+			for (j = 0; j < g_LoadedPllChips[i].ProbeAddressCount; j++)
 			{
-				exists = 1;
-				break;
+				addr = g_LoadedPllChips[i].ProbeAddresses[j];
+
+				if (addr == 0)
+					continue;
+
+				exists = 0;
+				{
+					int k;
+					for (k = 0; k < g_ProbeAddressCount; k++)
+					{
+						if (g_ProbeAddresses[k] == addr)
+						{
+							exists = 1;
+							break;
+						}
+					}
+				}
+
+				if (!exists && g_ProbeAddressCount < (int)(sizeof(g_ProbeAddresses)))
+					g_ProbeAddresses[g_ProbeAddressCount++] = addr;
 			}
 		}
+		else
+		{
+			addr = g_LoadedPllChips[i].DefaultAddress;
 
-		if (!exists && g_ProbeAddressCount < (int)(sizeof(g_ProbeAddresses)))
-			g_ProbeAddresses[g_ProbeAddressCount++] = addr;
+			if (addr == 0)
+				continue;
+
+			exists = 0;
+			for (j = 0; j < g_ProbeAddressCount; j++)
+			{
+				if (g_ProbeAddresses[j] == addr)
+				{
+					exists = 1;
+					break;
+				}
+			}
+
+			if (!exists && g_ProbeAddressCount < (int)(sizeof(g_ProbeAddresses)))
+				g_ProbeAddresses[g_ProbeAddressCount++] = addr;
+		}
 	}
 }
 
@@ -85,6 +159,9 @@ BOOL
 	{
 		int r;
 		char key[16];
+		char probeCsv[128];
+		char *ctx;
+		char *tok;
 
 		if (!PllChipKeyFromString(p, entries[i].PllKey, sizeof(entries[i].PllKey)))
 			continue;
@@ -94,6 +171,24 @@ BOOL
 
 		GetPrivateProfileStringA(p, "DefaultAddress", "0", tmp, sizeof(tmp), Path);
 		entries[i].DefaultAddress = (UCHAR)strtoul(tmp, NULL, 16);
+		entries[i].ProbeAddressCount = 0;
+
+		GetPrivateProfileStringA(p, "ProbeAddresses", "", probeCsv, sizeof(probeCsv), Path);
+		if (probeCsv[0] != '\0')
+		{
+			tok = strtok_s(probeCsv, ",", &ctx);
+			while (tok != NULL && entries[i].ProbeAddressCount < (UCHAR)(sizeof(entries[i].ProbeAddresses)))
+			{
+				unsigned long parsed;
+				while (*tok == ' ' || *tok == '\t')
+					tok++;
+
+				parsed = strtoul(tok, NULL, 16);
+				entries[i].ProbeAddresses[entries[i].ProbeAddressCount++] = (UCHAR)parsed;
+
+				tok = strtok_s(NULL, ",", &ctx);
+			}
+		}
 
 		GetPrivateProfileStringA(p, "RegisterCount", "0", tmp, sizeof(tmp), Path);
 		entries[i].RegisterCount = (UCHAR)strtoul(tmp, NULL, 10);
@@ -107,6 +202,21 @@ BOOL
 		GetPrivateProfileStringA(p, "SignatureValue", "0", tmp, sizeof(tmp), Path);
 		entries[i].SignatureValue = (UCHAR)strtoul(tmp, NULL, 16);
 
+		GetPrivateProfileStringA(p, "SignatureReg2", "0", tmp, sizeof(tmp), Path);
+		entries[i].SignatureReg2 = (UCHAR)strtoul(tmp, NULL, 16);
+
+		GetPrivateProfileStringA(p, "SignatureMask2", "0", tmp, sizeof(tmp), Path);
+		entries[i].SignatureMask2 = (UCHAR)strtoul(tmp, NULL, 16);
+
+		GetPrivateProfileStringA(p, "SignatureValue2", "0", tmp, sizeof(tmp), Path);
+		entries[i].SignatureValue2 = (UCHAR)strtoul(tmp, NULL, 16);
+
+		GetPrivateProfileStringA(p, "ReadProtocol", "ByteData", tmp, sizeof(tmp), Path);
+		if (_stricmp(tmp, "Sequential") == 0 || strcmp(tmp, "1") == 0)
+			entries[i].ReadProtocol = PLL_READ_SEQUENTIAL;
+		else
+			entries[i].ReadProtocol = PLL_READ_BYTE_DATA;
+			
 		for (r = 0; r < 64; r++)
 		{
 			sprintf(key, "Reg%02dDesc", r);
@@ -259,6 +369,7 @@ PPLL_CHIP_DESC
 
 	if (g_LoadedPllChips)
 	{
+		/* pass 1: require exact default address match */
 		for (i = 0; i < g_LoadedPllCount; i++)
 		{
 			entry = &g_LoadedPllChips[i];
@@ -266,26 +377,47 @@ PPLL_CHIP_DESC
 			if (entry->DefaultAddress != Address)
 				continue;
 
-			if (entry->SignatureMask != 0)
-			{
-				if ((R0 & entry->SignatureMask) != entry->SignatureValue)
-					continue;
-			}
+			if (!PllChipSignatureMatches(entry, R0))
+				continue;
+
+			return entry;
+		}
+
+		/* pass 2: allow ProbeAddresses fallback */
+		for (i = 0; i < g_LoadedPllCount; i++)
+		{
+			entry = &g_LoadedPllChips[i];
+
+			if (!PllChipAddressMatches(entry, Address))
+				continue;
+
+			if (!PllChipSignatureMatches(entry, R0))
+				continue;
 
 			return entry;
 		}
 	}
 
+	/* pass 1: built-in table exact default address */
 	for (entry = g_PllChips; entry->Name != NULL; entry++)
 	{
 		if (entry->DefaultAddress != Address)
 			continue;
 
-		if (entry->SignatureMask != 0)
-		{
-			if ((R0 & entry->SignatureMask) != entry->SignatureValue)
-				continue;
-		}
+		if (!PllChipSignatureMatches(entry, R0))
+			continue;
+
+		return entry;
+	}
+
+	/* pass 2: built-in table probe-address fallback */
+	for (entry = g_PllChips; entry->Name != NULL; entry++)
+	{
+		if (!PllChipAddressMatches(entry, Address))
+			continue;
+
+		if (!PllChipSignatureMatches(entry, R0))
+			continue;
 
 		return entry;
 	}

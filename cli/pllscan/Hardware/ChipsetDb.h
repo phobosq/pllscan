@@ -20,6 +20,11 @@ typedef struct
 	/* SMBHSTCNT Byte Data command: 0x48 on AMD (bits[3:2]), 0x42 on Intel (bits[2:0]) */
 	UCHAR SmbCmdByteData;
 
+	/* SMBus timing knobs for slower/quirky controllers */
+	ULONG SmbPollTimeout;
+	ULONG SmbYieldEvery;
+	ULONG SmbRecoverPolls;
+
 } CHIPSET_DB_ENTRY;
 
 

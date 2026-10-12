@@ -31,6 +31,11 @@ typedef struct
 	/* chipset-specific SMBHSTCNT value for Byte Data transactions */
 	UCHAR SmbCmdByteData;
 
+	/* per-chipset SMBus timing settings loaded from Chipsets.ini */
+	ULONG SmbPollTimeout;
+	ULONG SmbYieldEvery;
+	ULONG SmbRecoverPolls;
+
 } PLATFORM_INFO;
 
 

@@ -32,3 +32,28 @@ BOOL
 	PPLL_CONTEXT Context,
 	UCHAR Address
 	);
+
+BOOL
+	SmbusQuickWrite(
+	PPLL_CONTEXT Context,
+	UCHAR Address
+	);
+
+/* Receive Byte: START+ADDR(R)+DATA+STOP — no register/command byte sent. */
+BOOL
+	SmbusReceiveByte(
+	PPLL_CONTEXT Context,
+	UCHAR Address,
+	PUCHAR Data,
+	PUCHAR Status
+	);
+
+/* Sequential register read using Receive Byte; resets pointer via Send Byte first. */
+BOOL
+	SmbusReadSeq(
+	PPLL_CONTEXT Context,
+	UCHAR Address,
+	UCHAR StartReg,
+	UCHAR *Buf,
+	UCHAR Count
+	);

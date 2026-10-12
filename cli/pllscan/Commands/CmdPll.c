@@ -4,6 +4,7 @@
 #include "Commands.h"
 #include "Smbus.h"
 #include "PllChipDb.h"
+#include "PllChip.h"
 #include "Util.h"
 #include "SmbusRegs.h"
 
@@ -17,18 +18,22 @@ static
 	PPLL_CONTEXT Context,
 	UCHAR Address,
 	UCHAR *Buf,
-	UCHAR Count
+	UCHAR Count,
+	UCHAR Protocol
 	)
 {
 	UCHAR i;
 	UCHAR status;
+
+	if (Protocol == PLL_READ_SEQUENTIAL)
+		return SmbusReadSeq(Context, Address, 0, Buf, Count);
 
 	for (i = 0; i < Count; i++)
 	{
 		if (!SmbusReadByte(Context, Address, i, &Buf[i], &status))
 			return FALSE;
 
-		if (status & 0xF8)
+		if (status & SMB_ERR_MASK)
 			return FALSE;
 	}
 
@@ -79,7 +84,8 @@ int
 		if (addrCount <= 0)
 		{
 			addrs[0] = 0x69;
-			addrCount = 1;
+			addrs[1] = 0x6B;
+			addrCount = 2;
 		}
 
 		printf("Probing PLL chip addresses...\n\n");
@@ -98,6 +104,12 @@ int
 				0,
 				&r0,
 				&status);
+
+			if (!responds || (status & SMB_ERR_MASK))
+			{
+				/* byte-data read failed; try sequential (receive byte) for chips like ICS */
+				responds = SmbusReceiveByte(Context, addr, &r0, &status);
+			}
 
 			if (!responds || (status & SMB_ERR_MASK))
 				continue;
@@ -173,17 +185,11 @@ int
 			!(status & SMB_ERR_MASK))
 		{
 			chip = PllChipMatch(addr, r0);
-
-			if (chip != NULL)
-			{
-				printf("Chip: %s\n", chip->Name);
-				count = chip->RegisterCount;
-			}
-			else
-			{
-				printf("Chip: unidentified (addr=%d R0=0x%02X)\n",
-					addr, r0);
-			}
+		}
+		else if (SmbusReceiveByte(Context, addr, &r0, &status) &&
+			!(status & SMB_ERR_MASK))
+		{
+			chip = PllChipMatch(addr, r0);
 		}
 		else
 		{
@@ -191,14 +197,29 @@ int
 			return 1;
 		}
 
-		printf("Addr: %d (0x%02X)  Regs: %d\n\n",
-			addr, addr, count);
+		if (chip != NULL)
+		{
+			printf("Chip: %s\n", chip->Name);
+			count = chip->RegisterCount;
 
-		if (!ReadRegisters(Context, addr, buf, count))
+			if (count > MAX_DUMP_REGS)
+				count = MAX_DUMP_REGS;
+		}
+		else
+		{
+			printf("Chip: unidentified (addr=%d R0=0x%02X)\n",
+				addr, r0);
+		}
+
+		if (!ReadRegisters(Context, addr, buf, count,
+			chip != NULL ? chip->ReadProtocol : PLL_READ_BYTE_DATA))
 		{
 			printf("error: register read failed\n");
 			return 1;
 		}
+
+		printf("Addr: %d (0x%02X)  Regs: %d\n\n",
+			addr, addr, count);
 
 		PrintDumpTable(buf, count);
 
@@ -226,15 +247,27 @@ int
 		count = 32;
 
 		if (!SmbusReadByte(Context, addr, 0, &r0, &status) ||
-			(status & 0xF8))
+			(status & SMB_ERR_MASK))
 		{
-			printf("error: no response from addr=%d\n", addr);
-			return 1;
+			if (!SmbusReceiveByte(Context, addr, &r0, &status) ||
+				(status & SMB_ERR_MASK))
+			{
+				printf("error: no response from addr=%d\n", addr);
+				return 1;
+			}
 		}
 
 		chip = PllChipMatch(addr, r0);
 
-		if (!ReadRegisters(Context, addr, buf, count))
+		if (chip != NULL)
+		{
+			count = chip->RegisterCount;
+			if (count > MAX_DUMP_REGS)
+				count = MAX_DUMP_REGS;
+		}
+
+		if (!ReadRegisters(Context, addr, buf, count,
+			chip != NULL ? chip->ReadProtocol : PLL_READ_BYTE_DATA))
 		{
 			printf("error: register read failed\n");
 			return 1;

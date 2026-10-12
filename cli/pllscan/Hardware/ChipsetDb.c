@@ -10,7 +10,7 @@ static
 	g_Chipsets[] =
 {
 	/* terminator-only fallback; Chipsets.ini provides real entries */
-	{ 0, 0, "", NULL, 0, 0, 0, 0, 0 }
+		{ 0, 0, "", NULL, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 
@@ -114,6 +114,15 @@ BOOL
 
 		GetPrivateProfileStringA(p, "SmbCmdByteData", "48",   tmp, sizeof(tmp), Path);
 		entries[i].SmbCmdByteData = (UCHAR)strtoul(tmp, NULL, 16);
+
+		GetPrivateProfileStringA(p, "SmbPollTimeout", "10000", tmp, sizeof(tmp), Path);
+		entries[i].SmbPollTimeout = strtoul(tmp, NULL, 10);
+
+		GetPrivateProfileStringA(p, "SmbYieldEvery", "64", tmp, sizeof(tmp), Path);
+		entries[i].SmbYieldEvery = strtoul(tmp, NULL, 10);
+
+		GetPrivateProfileStringA(p, "SmbRecoverPolls", "1000", tmp, sizeof(tmp), Path);
+		entries[i].SmbRecoverPolls = strtoul(tmp, NULL, 10);
 
 		i++;
 	}

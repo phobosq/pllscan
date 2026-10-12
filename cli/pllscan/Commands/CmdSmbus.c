@@ -23,6 +23,7 @@ int
 	{
 		UCHAR addr;
 		UCHAR cmd;
+		status = 0xFF;
 
 
 		addr = (UCHAR)ParseInt(argv[3]);
@@ -36,7 +37,9 @@ int
 			&status))
 		{
 			printf(
-				"SMBus read failed\n");
+				"SMBus read failed (status=0x%02X)\n",
+				status);
+
 
 			return 1;
 		}
@@ -106,9 +109,14 @@ int
 				found = TRUE;
 				how = "quick";
 			}
+			else if (SmbusQuickWrite(Context, (UCHAR)addr))
+			{
+				found = TRUE;
+				how = "write-quick";
+			}
 			else
 			{
-				/* Quick read failed — try byte read at register 0 */
+				/* Last resort: try byte read at register 0 */
 				UCHAR d, s;
 
 				if (SmbusReadByte(Context, (UCHAR)addr, 0, &d, &s) &&
